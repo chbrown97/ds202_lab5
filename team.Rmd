@@ -92,6 +92,18 @@ final[is.na(final)] <- 0
 
 final %>% ggplot(aes(x=long,y=lat,fill = total_crashes)) +geom_polygon(aes(group = group)) +scale_fill_continuous(low='pink',high ='blue')
 
+winter <- acc %>% filter(MONTH < 3 | MONTH >11)
+summer <- acc %>% filter(MONTH > 4 & MONTH < 8)
+table(winter$MONTH)
 
+t1 <-winter %>% summarize(total =nrow(winter))
+t1$season = 'winter'
+
+t2 <- summer %>% summarize(total =nrow(summer))
+t2$season = 'summer'
+season <- merge(t1,t2,all=TRUE)
+season
+ggplot(season ,aes(x= season, y =total,fill =season)) +geom_bar(stat='identity')
+#looking at the chart, accidents tend to happend more frequently during the summer season. 
 
 ```
