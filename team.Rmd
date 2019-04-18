@@ -15,7 +15,7 @@ names(acc)
 library(dplyr)
 library(ggplot2)
 library(stringr)
-
+library(readxl)
 str(acc$DAY_WEEK)
 acc$DAY_WEEK <- as.character(acc$DAY_WEEK)
 labeled_days <- acc$DAY_WEEK %>% 
@@ -33,8 +33,7 @@ acc$DAY_WEEK <- factor(acc$DAY_WEEK, levels=c("Sunday", "Monday", "Tuesday", "We
 ggplot(acc, aes(x=DAY_WEEK)) + geom_bar() + xlab("Day of the Week") + ylab("Accidents") + ggtitle("Accidents per Day of the Week")
 # Saturday has the most accidents, followed by Sunday
 
-
-table(acc$HOUR)
+ggplot(acc %>%filter (HOUR <24),aes(x= HOUR)) +geom_bar()+scale_x_continuous(breaks = seq(0,23,1))
 # Looking at the output table, most accidents tend to happen in the evening, with the most accidents happening at hour 18, or 6:00pm.
 
 count <- 0
@@ -71,34 +70,27 @@ ggplot(data=subset(combined, combined$HOUR.x != 99 & combined$SEX != 8 & combine
 
 ```{r}
 # PART 3
+county <- read_xlsx("FRPP GLC United States.xlsx",skip =1)
 
-us <- readxl::read_xlsx("FRPP GLC United States.xlsx")
-territories <- readxl::read_xlsx("FRPP GLC US Territories.xlsx")
+colnames(county)[colnames(county)=='County Code'] <- 'COUNTY'
+county$COUNTY <- as.numeric(county$COUNTY)
 
-# Clean the glc data 
-colnames(us) <- us[1,]
-us <- us[-1,]
-colnames(territories) <- territories[1,]
-territories <- territories[-1,]
-us$`County Name` <- tolower(us$`County Name`)
-us$`State Name` <- tolower(us$`State Name`)
-us$`State Code` <- as.integer(us$`State Code`)
-us$`County Code` <- as.integer(us$`County Code`)
+colnames(county)[colnames(county)=='City Code'] <- 'CITY'
+county$CITY <- as.numeric(county$CITY)
 
-# Clean the counties data
-counties <- map_data('county')
-names(counties)[names(counties) == 'subregion'] <- 'County Name'
-names(counties)[names(counties) == 'region'] <- 'State Name'
+colnames(county)[colnames(county)=='State Code'] <- 'STATE'
+county$STATE <- as.numeric(county$STATE)
 
-# Clean the acc data
-names(acc)[names(acc) == 'STATE'] <- 'State Code'
-names(acc)[names(acc) == 'COUNTY'] <- 'County Code'
+acc1<- acc %>%select(`ST_CASE`,COUNTY,CITY,STATE)
+join1 <- acc1 %>% left_join(county,by = c('COUNTY','CITY','STATE'))
+join1 = join1 %>% mutate(`County Name` = tolower(`County Name`))
+join2 = join1 %>% group_by(`County Name`) %>% summarize(total_crashes= n())
+countyMap <- map_data("county")
+names(countyMap)[6] = "County Name"
+final =countyMap %>% left_join(join2, by="County Name")
+final[is.na(final)] <- 0
 
-
-df <- left_join(acc, us, id="County Code")
-
-#df2 <- inner_join(df, counties, id="County Name")
-
+final %>% ggplot(aes(x=long,y=lat,fill = total_crashes)) +geom_polygon(aes(group = group)) +scale_fill_continuous(low='pink',high ='blue')
 
 
 
