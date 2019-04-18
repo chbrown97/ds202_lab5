@@ -99,7 +99,7 @@ names(acc)[names(acc) == 'COUNTY'] <- 'County Code'
 df <- left_join(acc, us, id="County Code")
 
 #df2 <- inner_join(df, counties, id="County Name")
-
+# Can't compute due to memory problem???
 
 
 
