@@ -1,0 +1,106 @@
+---
+title: "individual1.html"
+author: "Colin Brown"
+date: "April 16, 2019"
+output: html_document
+---
+
+```{r}
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+
+names(acc)
+```
+
+```{r}
+#PART ONE
+library(dplyr)
+library(ggplot2)
+library(stringr)
+
+str(acc$DAY_WEEK)
+acc$DAY_WEEK <- as.character(acc$DAY_WEEK)
+labeled_days <- acc$DAY_WEEK %>% 
+  str_replace_all('1', "Sunday") %>%
+  str_replace_all('2', "Monday") %>%
+  str_replace_all('3', "Tuesday") %>%
+  str_replace_all('4', "Wednesday") %>%
+  str_replace_all('5', "Thursday") %>%
+  str_replace_all('6', "Friday") %>%
+  str_replace_all('7', "Saturday")
+
+acc$DAY_WEEK <- labeled_days
+acc$DAY_WEEK <- as.factor(acc$DAY_WEEK)
+acc$DAY_WEEK <- factor(acc$DAY_WEEK, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+ggplot(acc, aes(x=DAY_WEEK)) + geom_bar() + xlab("Day of the Week") + ylab("Accidents") + ggtitle("Accidents per Day of the Week")
+# Saturday has the most accidents, followed by Sunday
+
+
+table(acc$HOUR)
+# Looking at the output table, most accidents tend to happen in the evening, with the most accidents happening at hour 18, or 6:00pm.
+
+count <- 0
+for(i in acc$DRUNK_DR){
+  if(i != 0){
+    count <- count + 1
+  }
+}
+count
+# There were 8769 accidents involving a drunk driver.
+
+```
+
+```{r}
+# PART 2
+person <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv")
+
+drivers <- subset(person, person$PER_TYP==1)
+
+combined <- full_join(acc, drivers, by="ST_CASE")
+
+combined$SEX <- as.factor(combined$SEX)
+labeled_sex <- combined$SEX %>%
+  str_replace_all('1', "Male") %>%
+  str_replace_all('2', "Female")
+
+combined$SEX <- labeled_sex
+
+table(combined$SEX)
+# The table output shows that there are more accidents involving male drivers than female drivers
+
+ggplot(data=subset(combined, combined$HOUR.x != 99 & combined$SEX != 8 & combined$SEX != 9), aes(x=HOUR.x, fill=SEX)) + geom_bar() + facet_wrap(~DAY_WEEK) + xlab("Hour of the Day") + ylab("Accidents") + ggtitle("Accidents by Hour and Sex Across Days of the Week")
+```
+
+```{r}
+# PART 3
+
+us <- readxl::read_xlsx("FRPP GLC United States.xlsx")
+territories <- readxl::read_xlsx("FRPP GLC US Territories.xlsx")
+
+# Clean the glc data 
+colnames(us) <- us[1,]
+us <- us[-1,]
+colnames(territories) <- territories[1,]
+territories <- territories[-1,]
+us$`County Name` <- tolower(us$`County Name`)
+us$`State Name` <- tolower(us$`State Name`)
+us$`State Code` <- as.integer(us$`State Code`)
+us$`County Code` <- as.integer(us$`County Code`)
+
+# Clean the counties data
+counties <- map_data('county')
+names(counties)[names(counties) == 'subregion'] <- 'County Name'
+names(counties)[names(counties) == 'region'] <- 'State Name'
+
+# Clean the acc data
+names(acc)[names(acc) == 'STATE'] <- 'State Code'
+names(acc)[names(acc) == 'COUNTY'] <- 'County Code'
+
+
+df <- left_join(acc, us, id="County Code")
+
+#df2 <- inner_join(df, counties, id="County Name")
+
+
+
+
+```
